@@ -13,7 +13,7 @@ column_names <- c(
 )
 
 # Read the data
-breast_cancer_data <- read_csv("csci2025-maddiemann-project/Data/wdbc.data", col_names = column_names)
+breast_cancer_data <- read_csv("Data/wdbc.data", col_names = column_names)
 
 glimpse(breast_cancer_data)
 
