@@ -60,5 +60,13 @@ breast_cancer_data |>
   geom_point(alpha = 0.3, aes(color = diagnosis))
 
 breast_cancer_data |> 
-  mutate()
+  group_by(diagnosis) |> 
+  summarise(
+    avg_radius_mean =  mean(radius_mean),
+    avg_radius_worst = mean(radius_worst),
+    avg_radius_se = mean(radius_se),
+    avg_texture_mean = mean(texture_mean),
+    avg_area_worst = mean(area_worst)
+  )
+
 
