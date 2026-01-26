@@ -1,6 +1,7 @@
 library(tidyverse)
-
-
+library(ggradar)
+library(devtools)
+library(scales)
 # Define the column names based on the dataset documentation
 column_names <- c(
   "id", "diagnosis",
@@ -69,4 +70,71 @@ breast_cancer_data |>
     avg_area_worst = mean(area_worst)
   )
 
+library(devtools)
 
+devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE)
+
+
+
+# Ensure you have the core dependencies first
+install.packages(c("ggplot2", "dplyr", "scales", "tibble"))
+
+# Increase timeout for GitHub downloads
+options(timeout = 600)
+
+# Try installing without building from source
+remotes::install_github("ricardo-bion/ggradar", 
+                        build_vignettes = FALSE, 
+                        upgrade = "never")
+
+
+renv::install("ricardo-bion/ggradar")
+
+
+radar_mean <- breast_cancer_data |> 
+  select(c(diagnosis, contains("_mean"))) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean))
+ 
+
+ggradar(radar_mean,
+        values.rad = c("0", "0.5", "1"),
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom")
+      
+  
+radar_se <- breast_cancer_data |> 
+  select(c(diagnosis, contains("_se"))) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+# Median Values by vehicle Class 
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean))
+ 
+
+ggradar(radar_se,
+        values.rad = c("0", "0.5", "1"),
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom")
+      
+
+
+radar_worst <- breast_cancer_data |> 
+  select(c(diagnosis, contains("_worst"))) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean))
+ 
+
+ggradar(radar_worst,
+        values.rad = c("0", "0.5", "1"),
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom")
+      
