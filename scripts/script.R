@@ -91,27 +91,12 @@ remotes::install_github("ricardo-bion/ggradar",
 renv::install("ricardo-bion/ggradar")
 
 
-radar_mean <- breast_cancer_data |> 
-  select(c(diagnosis, contains("_mean"))) |> 
-  mutate(across(where(is.numeric), rescale)) |> 
-
-
-group_by(diagnosis) |> 
-  summarise(across(everything(), .fns = mean))
- 
-
-ggradar(radar_mean,
-        values.rad = c("0", "0.5", "1"),
-        group.line.width = 1,
-        group.point.size = 3,
-        legend.position = "bottom")
-      
   
 radar_se <- breast_cancer_data |> 
   select(c(diagnosis, contains("_se"))) |> 
   mutate(across(where(is.numeric), rescale)) |> 
 
-# Median Values by vehicle Class 
+
 group_by(diagnosis) |> 
   summarise(across(everything(), .fns = mean))
  
@@ -137,4 +122,21 @@ ggradar(radar_worst,
         group.line.width = 1,
         group.point.size = 3,
         legend.position = "bottom")
+
+
+radar_mean <- breast_cancer_data |> 
+  select(c(diagnosis, area_mean, concave_points_mean, concavity_mean, smoothness_mean)) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean))
+ 
+
+ggradar(radar_mean,
+        values.rad = c("0", "0.5", "1"),
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom")
       
+

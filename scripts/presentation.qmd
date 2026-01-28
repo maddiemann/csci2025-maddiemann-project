@@ -1,0 +1,12 @@
+---
+title: "Breast Cancer Nuclei" 
+author: "Maddie Mann" 
+format: revealjs
+---
+# Background Information 
+
+## Breast Cancer Data 
+
+- 30 columns 
+
+
