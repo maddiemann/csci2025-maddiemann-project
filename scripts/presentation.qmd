@@ -1,12 +1,214 @@
 ---
 title: "Breast Cancer Nuclei" 
 author: "Maddie Mann" 
-format: revealjs
+format: 
+  revealjs:
+    theme: dark
+execute:
+  echo: false
+knitr:
+  opts_chunk:
+    root.dir: !expr here::here()
 ---
-# Background Information 
 
-## Breast Cancer Data 
-
-- 30 columns 
+# Background Information
 
 
+## Breast Cancer Data
+
+-   30 columns, 569 rows
+- Attribute information:
+1) ID number
+2) Diagnosis (M = malignant, B = benign)
+
+Ten real-valued features are computed for each cell nucleus:
+
+	1) radius (mean of distances from center to points on the perimeter)
+	2) texture (standard deviation of gray-scale values)
+	3) perimeter
+	4) area
+	5) smoothness (local variation in radius lengths)
+	6) compactness (perimeter^2 / area - 1.0)
+	7) concavity (severity of concave portions of the contour)
+	8) concave points (number of concave portions of the contour)
+	9) symmetry 
+	10) fractal dimension (texture of the cell's edge)
+- The mean, standard error, and "worst" or largest (mean of the three
+largest values) of these features were computed for each
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(ggradar)
+library(devtools)
+library(scales)
+library(here)
+library(patchwork)
+
+column_names <- c(
+  "id", "diagnosis",
+  "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean", 
+  "compactness_mean", "concavity_mean", "concave_points_mean", "symmetry_mean", "fractal_dimension_mean",
+  "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se", 
+  "compactness_se", "concavity_se", "concave_points_se", "symmetry_se", "fractal_dimension_se",
+  "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst", 
+  "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst"
+)
+
+breast_cancer_data <- read_csv(here("Data","wdbc.data"), col_names = column_names) 
+
+  
+radar_se <- breast_cancer_data |> 
+  select(c(diagnosis, contains("_se"))) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean)) |> 
+  rename_with(~str_replace_all(., "_se", ""), .cols = everything()) 
+  
+ 
+
+se_plot <- ggradar(radar_se,
+        values.rad = c("0", "0.5", "1"),
+        axis.label.size = 3,
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom", 
+        font.radar = "") +
+            labs(subtitle = "Standard Error")
+
+
+
+radar_worst <- breast_cancer_data |> 
+  select(c(diagnosis, contains("_worst"))) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean)) |> 
+  rename_with(~str_replace_all(., "_worst", ""), .cols = everything())
+ 
+
+worst_plot <- ggradar(radar_worst,
+        values.rad = c("0", "0.5", "1"),
+        axis.label.size = 3,
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom") +
+            labs(subtitle = "Worst")
+
+radar_mean <- breast_cancer_data |> 
+  select(c(diagnosis, contains("_mean"))) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean)) |> 
+  rename_with(~str_replace_all(., "_mean", ""), .cols = everything())
+ 
+
+mean_plot <- ggradar(radar_mean,
+        values.rad = c("0", "0.5", "1"),
+        axis.label.size = 3,
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom") +
+            labs(subtitle = "Mean")
+
+radar_optimal <- breast_cancer_data |> 
+  select(c(diagnosis, concave_points_mean, concavity_mean, perimeter_worst, radius_worst, area_worst)) |> 
+  mutate(across(where(is.numeric), rescale)) |> 
+
+group_by(diagnosis) |> 
+  summarise(across(everything(), .fns = mean))
+ 
+
+optimal_plot <- ggradar(radar_optimal,
+        values.rad = c("0", "0.5", "1"),
+        axis.label.size = 2,
+        group.line.width = 1,
+        group.point.size = 3,
+        legend.position = "bottom")
+
+
+```
+
+## Radar Plots
+
+```{r}
+#| echo: false
+(mean_plot + se_plot + worst_plot) +
+    plot_layout(ncol = 3, guides = "collect") &
+    theme(legend.position = "bottom")
+```
+
+
+## PCA Analysis 
+
+```{r}
+#| echo: false
+library(factoextra)
+library(scales)
+library(ISLR2)
+library(tidyclust)
+library(tidymodels)
+breast_cancer_data_rec <- recipe(~ ., data = breast_cancer_data) |> 
+  update_role(id, diagnosis, new_role = "diagnosis") |> 
+  step_normalize(all_numeric_predictors()) |> 
+  step_pca(all_numeric_predictors(), num_comp = 10) |> 
+  prep()
+
+bcd_pca_loading <- tidy(breast_cancer_data_rec, number = 2,)
+
+bcd_pca_loading |> 
+  filter(component %in% c("PC1", "PC2")) |> 
+  group_by(component) |> 
+  slice_max(abs(value), n = 10) |> 
+  ungroup() |> 
+  ggplot(aes(x = value, y = reorder(terms, value), fill = component)) +
+  geom_col() +
+  facet_wrap(~component, scales = "free_y")
+
+```
+
+# Optimal Radar Plot 
+
+```{r}
+optimal_plot
+```
+
+## Tumor Size 
+
+```{r}
+wpbc_column_names <- c(
+  "id", "outcome", "time", "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean", 
+  "compactness_mean", "concavity_mean", "concave_points_mean", "symmetry_mean", "fractal_dimension_mean",
+  "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se", 
+  "compactness_se", "concavity_se", "concave_points_se", "symmetry_se", "fractal_dimension_se",
+  "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst", 
+  "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst", "tumor_size", "lymph_node_status"
+)
+wpbc_data <- read_csv(here("Data", "wpbc.data"), col_names = wpbc_column_names)
+
+combined_data <- breast_cancer_data |> 
+  left_join(wpbc_data) |> 
+  drop_na(outcome)
+
+combined_data |> 
+  mutate(outcome = case_match(outcome,
+    "N" ~ "Non-Recurrence",
+    "R" ~ "Recurrence")) |> 
+  ggplot(aes(x = tumor_size, y = area_mean, color = outcome)) + 
+  geom_point(alpha = 0.6) +
+  labs(
+    x = "Tumor Size (Macro-scale / cm)", 
+    y = "Nucleus Area (Micro-scale / pixels)",
+    title = "Tumor Growth vs. Cellular Nucleus for Malignant Tumors"
+  )
+
+
+combined_data |> 
+  ggplot(aes(x = outcome, y = area_worst))+
+  geom_jitter(width = 0.2)
+
+```
